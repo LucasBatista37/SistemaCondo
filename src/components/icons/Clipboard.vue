@@ -1,0 +1,27 @@
+<template>
+  <svg viewBox="0 0 24 24" :height="height" :width="width" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+    <path d="M12 2v4" stroke-linecap="butt"/>
+    <path d="M8 10h8M8 14h8M8 18h8"/>
+  </svg>
+</template>
+
+<script>
+export default {
+  name: 'clipboard-icon',
+  props: {
+    fill: {
+      default: "none"
+    },
+    height: {
+      default: '24px'
+    },
+    width: {
+      default: '24px'
+    }
+  }
+}
+</script>
+
+<style>
+</style>
