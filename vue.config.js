@@ -1,9 +1,10 @@
 module.exports = {
-	publicPath: process.env.NODE_ENV === 'production' ? '/vue-pro-sidebar/' : '/',
+	publicPath: './', // Certifica que os arquivos estáticos são carregados corretamente
 	chainWebpack: config => {
-	//	process.env.NODE_ENV === 'production' ? config.externals(['@vue/composition-api']):{};
+	  // Remova ou ajuste configurações adicionais
 	},
 	css: {
-		extract: false,
+	  extract: false, // Se necessário, mantenha como false
 	},
-};
+  };
+  
