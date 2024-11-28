@@ -314,11 +314,11 @@ textarea {
 }
 
 .card-container {
-  margin-top: 20px;
-  max-height: 550px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #6f42c1 #f1f1f1;
+    margin-top: 20px;
+    max-height: 559px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #6f42c1 #f1f1f1;
 }
 
 .card-container::-webkit-scrollbar {
