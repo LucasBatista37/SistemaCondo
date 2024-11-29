@@ -6,6 +6,8 @@ import Dashboard1 from '../views/avisos.vue';
 import Dashboard2 from '../views/assembleia.vue';
 import Dashboard3 from '../views/Dashboard3.vue';
 import ComingSoon from '../views/encomendas.vue';
+import ReserveDashboard from '../views/reservas.vue';
+import MaintenanceDashboard from '../views/manutencao.vue';
 
 Vue.use(Router);
 
@@ -21,7 +23,7 @@ export default new Router({
     path: '/register',
     name: 'Register',
     component: Register,
-    meta: { layout: 'no-sidebar' }  // Adiciona uma meta para o layout sem sidebar
+    meta: { layout: 'no-sidebar' } 
     },
     {
       path: '/avisos',
@@ -40,6 +42,18 @@ export default new Router({
       name: 'ComingSoon',
       component: ComingSoon,
       meta: { requiresAuth: true }
-    }
+    },
+    {
+      path: '/reservas',
+      name: 'ReserveDashboard',
+      component: ReserveDashboard,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/manutencao',
+      name: 'ManutencaoDashboard',
+      component: MaintenanceDashboard,
+      meta: { requiresAuth: true }
+    }        
   ]
 });

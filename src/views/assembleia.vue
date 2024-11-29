@@ -1,7 +1,7 @@
 <template>
-  <div class="dashboard">
+  <div class="dashboard" @click="handleClickOutside">
     <h1>
-      Cadastro de Assembleia
+      Cadastro de Assembleias
       <button class="btn-close" @click="closeForm">
         &times;
       </button>
@@ -17,47 +17,32 @@
         </div>
 
         <div class="form-group">
-          <label for="subject">
-            <i class="fas fa-comment-dots"></i> Assunto
+          <label for="message">
+            <i class="fas fa-comment-dots"></i> Descrição
           </label>
-          <input type="text" id="subject" v-model="subject" required />
+          <textarea id="message" v-model="message" required></textarea>
         </div>
 
         <div class="form-group">
           <label for="date">
-            <i class="fas fa-calendar-alt"></i> Data
+            <i class="fas fa-calendar"></i> Data da Assembleia
           </label>
-          <input type="date" id="date" v-model="date" required />
+          <input type="datetime-local" id="date" v-model="date" required />
         </div>
 
         <div class="form-group">
-          <label for="time">
-            <i class="fas fa-clock"></i> Horário de Início
+          <label for="status">
+            <i class="fas fa-info-circle"></i> Status
           </label>
-          <input type="time" id="time" v-model="time" required />
-        </div>
-
-        <button type="button" @click="showModal = true" class="btn-add-agenda">
-          <i class="fas fa-plus"></i> Adicionar Pauta
-        </button>
-
-        <div class="agenda-container">
-          <div v-for="(item, index) in agendaItems" :key="index" class="agenda-item">
-            <p><strong>Título:</strong> {{ item.title }}</p>
-            <p><strong>Assunto:</strong> {{ item.subject }}</p>
-            <div class="vote-buttons">
-              <button @click="vote(index, 'yes')" :disabled="item.voted" class="btn-vote yes">Sim</button>
-              <button @click="vote(index, 'no')" :disabled="item.voted" class="btn-vote no">Não</button>
-              <button @click="vote(index, 'abstention')" :disabled="item.voted" class="btn-vote abstention">Abstenção</button>
-            </div>
-            <p class="vote-count">
-              <strong>Votos:</strong> Sim: {{ item.votes.yes }} | Não: {{ item.votes.no }} | Abstenção: {{ item.votes.abstention }}
-            </p>
-          </div>
+          <select id="status" v-model="status" required>
+            <option value="Pendente">Pendente</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Encerrada">Encerrada</option>
+          </select>
         </div>
 
         <button type="submit" class="btn-submit">
-          <i class="fas fa-paper-plane"></i> Criar Assembleia
+          <i class="fas fa-paper-plane"></i> Publicar Assembleia
         </button>
       </form>
     </div>
@@ -68,152 +53,198 @@
       </button>
     </div>
 
-    <div class="modal" v-if="showModal">
-      <div class="modal-content">
-        <span class="close" @click="showModal = false">&times;</span>
-        <h2>Adicionar Pauta</h2>
-        <div class="modal-form-group">
-          <label for="agendaTitle">Título da Pauta</label>
-          <input type="text" id="agendaTitle" v-model="newAgendaTitle" required />
-        </div>
-        <div class="modal-form-group">
-          <label for="agendaSubject">Assunto da Pauta</label>
-          <input type="text" id="agendaSubject" v-model="newAgendaSubject" required />
-        </div>
-        <button @click="addAgendaItem" class="btn-submit">Adicionar Pauta</button>
-      </div>
-    </div>
-
     <div class="card-container" v-if="showCard">
-      <div class="card">
+      <div class="card" v-for="assembly in assemblies" :key="assembly._id">
         <div class="card-header">
-          <span class="card-title">{{ title || 'Título da Assembleia' }}</span>
+          <span class="card-title">{{ assembly.title || 'Título da Assembleia' }}</span>
           <div class="options-container">
-            <button class="btn-options" @click="toggleOptions">
+            <button class="btn-options" :data-id="assembly._id" @click="toggleOptions(assembly._id)">
               ⋮
             </button>
-            <div v-if="showMenu" class="options-menu">
-              <button class="btn-edit" @click="editAssembly">
+            <div class="options-menu" :data-id="assembly._id" v-if="showMenu[assembly._id]">
+              <button class="btn-edit" @click="openEditModal(assembly)">
                 <i class="fas fa-edit"></i> Editar
               </button>
-              <button class="btn-delete" @click="deleteAssembly">
+              <button class="btn-delete" @click="deleteAssembly(assembly._id)">
                 <i class="fas fa-trash"></i> Excluir
               </button>
             </div>
           </div>
         </div>
         <div class="card-body">
-          <p><strong>Assunto:</strong> {{ subject || 'N/A' }}</p>
-          <p><strong>Data:</strong> {{ date || 'N/A' }}</p>
-          <p><strong>Horário:</strong> {{ time || 'N/A' }}</p>
+          <p>{{ assembly.description || 'Descrição da assembleia' }}</p>
+          <p><strong>Data:</strong> {{ new Date(assembly.date).toLocaleString() }}</p>
+          <p><strong>Status:</strong> {{ assembly.status }}</p>
         </div>
+      </div>
+    </div>
+
+    <div v-if="showEditModal" class="modal">
+      <div class="modal-content">
+        <span class="close" @click="closeEditModal">&times;</span>
+        <h2>Editar Assembleia</h2>
+        <form @submit.prevent="saveEdit">
+          <div class="form-group">
+            <label for="edit-title">
+              <i class="fas fa-pencil-alt"></i> Título
+            </label>
+            <input type="text" id="edit-title" v-model="title" required />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-message">
+              <i class="fas fa-comment-dots"></i> Descrição
+            </label>
+            <textarea id="edit-message" v-model="message" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-date">
+              <i class="fas fa-calendar"></i> Data da Assembleia
+            </label>
+            <input type="datetime-local" id="edit-date" v-model="date" required />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-status">
+              <i class="fas fa-info-circle"></i> Status
+            </label>
+            <select id="edit-status" v-model="status" required>
+              <option value="Pendente">Pendente</option>
+              <option value="Em Andamento">Em Andamento</option>
+              <option value="Encerrada">Encerrada</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn-submit">
+            <i class="fas fa-save"></i> Salvar Alterações
+          </button>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
-  name: 'DashboardAssembleia',
+  name: 'Dashboard1',
   data() {
     return {
       title: '',
-      subject: '',
+      message: '',
       date: '',
-      time: '',
-      agendaItems: [],
+      status: 'Pendente',
       showForm: false,
       showCard: true,
-      showMenu: false,
-      showModal: false,
-      newAgendaTitle: '',
-      newAgendaSubject: '',
+      showMenu: {},
+      assemblies: [],
+      showEditModal: false,
+      editAssemblyId: null
     };
   },
   methods: {
-    submitForm() {
-      console.log('Assembleia criada:', {
-        title: this.title,
-        subject: this.subject,
-        date: this.date,
-        time: this.time,
-        agendaItems: this.agendaItems
-      });
-      this.resetForm();
-      this.showCard = true;
-    },
-    addAgendaItem() {
-      if (this.newAgendaTitle && this.newAgendaSubject) {
-        this.agendaItems.push({
-          title: this.newAgendaTitle,
-          subject: this.newAgendaSubject,
-          votes: {
-            yes: 0,
-            no: 0,
-            abstention: 0,
-          },
-          voted: false,
-        });
-        this.newAgendaTitle = '';
-        this.newAgendaSubject = '';
-        this.showModal = false;
+    async submitForm() {
+      try {
+        const newAssembly = {
+          title: this.title,
+          description: this.message,
+          date: this.date,
+          status: this.status
+        };
+        const response = await axios.post('https://backend-condoview.onrender.com/api/users/assemblies', newAssembly);
+        this.assemblies.push(response.data);
+        this.showCard = true;
+        this.showForm = false;
+        this.title = '';
+        this.message = '';
+        this.date = '';
+        this.status = 'Pendente';
+        this.showMenu = {};
+      } catch (error) {
+        console.error("Erro ao criar assembleia:", error);
+        alert("Houve um erro ao criar a assembleia.");
       }
     },
-    vote(index, option) {
-      if (!this.agendaItems[index].voted) {
-        if (option === 'yes') this.agendaItems[index].votes.yes++;
-        if (option === 'no') this.agendaItems[index].votes.no++;
-        if (option === 'abstention') this.agendaItems[index].votes.abstention++;
-        this.agendaItems[index].voted = true;
-        console.log(`Voto registrado na pauta ${index + 1}: ${option}`);
+    async fetchAssemblies() {
+      try {
+        const response = await axios.get('https://backend-condoview.onrender.com/api/users/admin/assemblies');
+        this.assemblies = response.data;
+      } catch (error) {
+        console.error("Erro ao obter assembleias:", error);
       }
     },
-    resetForm() {
+    async deleteAssembly(id) {
+      try {
+        await axios.delete(`https://backend-condoview.onrender.com/api/users/admin/assemblies/${id}`);
+        this.assemblies = this.assemblies.filter(assembly => assembly._id !== id);
+        console.log("Assembleia deletada com sucesso.");
+      } catch (error) {
+        console.error("Erro ao deletar a assembleia:", error);
+      }
+    },
+    openEditModal(assembly) {
+      this.title = assembly.title;
+      this.message = assembly.description;
+      this.date = assembly.date;
+      this.status = assembly.status;
+      this.editAssemblyId = assembly._id;
+      this.showEditModal = true;
+    },
+    closeEditModal() {
+      this.showEditModal = false;
       this.title = '';
-      this.subject = '';
+      this.message = '';
       this.date = '';
-      this.time = '';
-      this.agendaItems = [];
-      this.showForm = false;
+      this.status = 'Pendente';
+      this.editAssemblyId = null;
+    },
+    async saveEdit() {
+      try {
+        const updatedAssembly = {
+          title: this.title,
+          description: this.message,
+          date: this.date,
+          status: this.status
+        };
+        const response = await axios.put(`https://backend-condoview.onrender.com/api/users/assemblies/${this.editAssemblyId}`, updatedAssembly);
+        const index = this.assemblies.findIndex(assembly => assembly._id === this.editAssemblyId);
+        if (index !== -1) {
+          this.assemblies[index] = response.data;
+        }
+        this.closeEditModal();
+      } catch (error) {
+        console.error("Erro ao atualizar a assembleia:", error);
+      }
     },
     closeForm() {
-      this.resetForm();
+      this.showForm = false;
       this.showCard = true;
     },
-    toggleOptions() {
-      this.showMenu = !this.showMenu;
+    toggleOptions(id) {
+      this.$set(this.showMenu, id, !this.showMenu[id]);
     },
-    editAssembly() {
-      console.log('Editando assembleia:', {
-        title: this.title,
-        subject: this.subject,
-        date: this.date,
-        time: this.time,
-        agendaItems: this.agendaItems
+    handleClickOutside(event) {
+      Object.keys(this.showMenu).forEach(id => {
+        const menu = this.$el.querySelector(`.options-menu[data-id="${id}"]`);
+        const button = this.$el.querySelector(`.btn-options[data-id="${id}"]`);
+        if (this.showMenu[id] && menu && !menu.contains(event.target) && !button.contains(event.target)) {
+          this.$set(this.showMenu, id, false);
+        }
       });
-      this.showForm = true;
-      this.showCard = false;
-      this.showMenu = false;
-    },
-    deleteAssembly() {
-      console.log('Excluindo assembleia:', {
-        title: this.title,
-        subject: this.subject,
-        date: this.date,
-        time: this.time,
-        agendaItems: this.agendaItems
-      });
-      this.resetForm();
-      this.showCard = false;
-      this.showMenu = false;
     }
+  },
+  mounted() {
+    this.fetchAssemblies();
   }
-}
+};
 </script>
 
 <style>
 .dashboard {
   max-width: 800px;
+  height: 700px;
   margin: 0 auto;
   padding: 20px;
   border: 1px solid #ddd;
@@ -264,24 +295,8 @@ h1 {
   background-color: #593c9a;
 }
 
-.btn-add-agenda {
-  display: inline-block;
-  background-color: #6f42c1;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 20px;
-  cursor: pointer;
-  font-size: 16px;
-  width: 100%;
-}
-
-.btn-add-agenda:hover {
-  background-color: #593c9a;
-}
-
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 label {
@@ -296,8 +311,8 @@ label i {
 }
 
 input[type="text"],
-input[type="date"],
-input[type="time"] {
+textarea,
+select {
   width: 100%;
   padding: 10px;
   border: 1px solid #ccc;
@@ -305,15 +320,40 @@ input[type="time"] {
   box-sizing: border-box;
 }
 
+textarea {
+  resize: vertical;
+}
+
+.btn-submit {
+  margin-top: 10px;
+}
+
 .card-container {
-  margin-top: 20px;
+    margin-top: 20px;
+    max-height: 559px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #6f42c1 #f1f1f1;
+}
+
+.card-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.card-container::-webkit-scrollbar-thumb {
+  background-color: #6f42c1;
+  border-radius: 10px;
+}
+
+.card-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
 }
 
 .card {
   background-color: #f9f9f9;
   border-radius: 12px;
   border: 1px solid #ddd;
-  padding: 20px;
+  padding: 15px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   margin-bottom: 15px;
   position: relative;
@@ -327,7 +367,7 @@ input[type="time"] {
 
 .card-title {
   font-weight: bold;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .options-container {
@@ -345,7 +385,7 @@ input[type="time"] {
 .options-menu {
   position: absolute;
   right: 20px;
-  top: -12px;
+  top: -7px;
   background: white;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -380,6 +420,11 @@ input[type="time"] {
   margin-top: 10px;
 }
 
+.card-icon {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
 .modal {
   display: flex;
   justify-content: center;
@@ -389,90 +434,32 @@ input[type="time"] {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
 }
 
 .modal-content {
-  background-color: white;
-  border-radius: 8px;
+  background: #fff;
   padding: 20px;
-  width: 400px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.modal-form-group {
-  margin-bottom: 20px;
-}
-
-.modal-form-group label {
-  margin-bottom: 5px;
-}
-
-.modal-form-group input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.agenda-container {
-  margin-top: 10px;
-}
-
-.agenda-item {
-  background-color: #e9ecef;
   border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 10px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #6f42c1 #f1f1f1;
 }
 
-.vote-buttons {
-  margin-top: 10px;
+.modal-content::-webkit-scrollbar {
+  width: 8px;
 }
 
-.btn-vote {
-  margin-right: 5px;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 5px 10px;
-  cursor: pointer;
+.modal-content::-webkit-scrollbar-thumb {
+  background-color: #6f42c1;
+  border-radius: 10px;
 }
 
-.btn-vote.yes {
-  background-color: #28a745;
-}
-
-.btn-vote.yes:hover {
-  background-color: #218838;
-}
-
-.btn-vote.no {
-  background-color: #dc3545;
-}
-
-.btn-vote.no:hover {
-  background-color: #c82333;
-}
-
-.btn-vote.abstention {
-  background-color: #6c757d;
-}
-
-.btn-vote.abstention:hover {
-  background-color: #5a6268;
-}
-
-.vote-count {
-  margin-top: 10px;
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
 }
 </style>
